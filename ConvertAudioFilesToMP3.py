@@ -12,7 +12,7 @@ import shutil
 def main():
 
     # Files directory (replace '\' with '/')
-    CONVERT_DIR = "C:/Perso/Sandbox/ConvertToMP3"
+    CONVERT_DIR = "C:/DIRECTORY/TO/CONVERT"
 
     # Program (absolute) path (replace '\' with '/')
     PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
@@ -31,6 +31,12 @@ def convertToPythonPath(dir):
 
 
 def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
+
+    # Check VLC location 
+    if(not os.path.isfile(PROGRAM_PATH)):
+        print("ERROR: VLC not found. Please check your VLC installation path.")
+        os.system("pause")
+        exit()
 
     # Check directory
     if(not os.path.isdir(CONVERT_DIR)):
