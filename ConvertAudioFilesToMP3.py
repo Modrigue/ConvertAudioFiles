@@ -11,8 +11,8 @@ import shutil
 
 def main():
 
-    # Files directory (replace '\' with '/')
-    CONVERT_DIR = "C:/DIRECTORY/TO/CONVERT"
+    # Files to be converted directory (replace '\' with '/')
+    CONVERT_DIR = "C:/Your/Directory/ConvertToMP3"
 
     # Program (absolute) path (replace '\' with '/')
     PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
@@ -31,12 +31,6 @@ def convertToPythonPath(dir):
 
 
 def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
-
-    # Check VLC location 
-    if(not os.path.isfile(PROGRAM_PATH)):
-        print("ERROR: VLC not found. Please check your VLC installation path.")
-        os.system("pause")
-        exit()
 
     # Check directory
     if(not os.path.isdir(CONVERT_DIR)):
@@ -59,6 +53,8 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
         #print("Processing directory", dirname)
         dirname = convertToDOSPath(dirname)
 
+        oldString = "_OLD_"
+
         # Browse files
         for filename in filenames:
             if(re.search('.aac', filename) is not None or re.search('.m4a', filename) is not None or re.search('.ogg', filename) is not None):
@@ -67,9 +63,13 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
                 srcFileBase = os.path.basename(srcFile)
                 srcFileWithoutExt = Path(srcFileBase).stem
                 dstFileBase = re.sub('\s\(\d{2,3}kbit_(AAC|Opus)\)', "", srcFileWithoutExt)
-                dstFileBase = re.sub('_OLD_', "", dstFileBase)
+                dstFileBase = re.sub(oldString, "", dstFileBase)
                 dstFile = os.path.join(dirname, dstFileBase + ".mp3")
-                oldFile = os.path.join(dirname, "_OLD_" + filename)
+                if(not filename.startswith(oldString)):
+                    oldFile = os.path.join(dirname, oldString + filename)
+                else:
+                    oldFile = os.path.join(dirname, filename)
+                
                 #print(srcFile)
                 #print(dstFile)
                 
@@ -86,7 +86,23 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
                 
                 # Post-process: replace filenames
                 os.rename(srcFile, oldFile)
-                os.rename(tmpFile, dstFile)
+                if(os.path.exists(dstFile)):
+                    # if already existing, add (<n>)
+                    dstFileBase = dstFile
+                    dstFileCreated = False
+                    index = 0
+                    while(not dstFileCreated):
+                        index += 1
+                        dstFileWithoutExt = Path(dstFileBase).stem
+                        dstFileWithoutExt += " (" + str(index) + ")"
+                        dstFile = os.path.join(dirname, dstFileWithoutExt + ".mp3")
+                        if(not os.path.exists(dstFile)):
+                            # ok, create file
+                            os.rename(tmpFile, dstFile)
+                            dstFileCreated = True
+                else:
+                    os.rename(tmpFile, dstFile)
+                
                 nbConverted += 1        
 
     # Print result
