@@ -32,6 +32,12 @@ def convertToPythonPath(dir):
 
 def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
 
+    # Check VLC location 
+    if(not os.path.isfile(PROGRAM_PATH)):
+        print("ERROR: VLC not found. Please check your VLC installation path.")
+        os.system("pause")
+        exit()
+
     # Check directory
     if(not os.path.isdir(CONVERT_DIR)):
         print("ERROR: Directory", CONVERT_DIR, "does not exist")
