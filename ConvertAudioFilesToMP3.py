@@ -1,24 +1,47 @@
 #!/usr/bin/env python
 # -*-coding:Latin-1 -*
 
-# Converts audio files to MP3 files in directory <CONVERT_DIR>
+# Converts all audio files in specified directory to MP3 files
 
 
 import os
 from pathlib import Path
 import re
 import shutil
+import sys, getopt
 
-def main():
+def main(argv):
 
     # Files to be converted directory (replace '\' with '/')
-    CONVERT_DIR = "C:/Your/Directory/ConvertToMP3"
+    CONVERT_DIR = ""
 
-    # Program (absolute) path (replace '\' with '/')
+    # Default program (absolute) path (replace '\' with '/')
     PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
 
-    # Bitrate
+    # Default bitrate
     BIT_RATE = 128
+
+    try:
+        opts, args = getopt.getopt(argv,"hd:r:p:",["help","dir=","rate=","program="])
+    except getopt.GetoptError:
+        printHelp()
+        sys.exit(2)
+    
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            printHelp()
+            sys.exit()
+        elif opt in ("-d", "--dir"):
+            CONVERT_DIR = arg
+        elif opt in ("-r", "--rate"):
+            BIT_RATE = arg
+        elif opt in ("-p", "--program"):
+            PROGRAM_PATH = arg
+
+    if(not CONVERT_DIR):
+        print('Error: conversion directory is missing')
+        printHelp()
+        return
 
     convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE)
 
@@ -122,7 +145,20 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
     print("Converted Files  ", nbConverted)
 
 
-main()
+def printHelp():
+    print()
+    print('Usage: python ConvertAudioFilesToMP3.py -d <directory>')
+    print()
+    print("Options:")
+    print("  -d, --dir <dir>:       directory to bulk convert audio files in")
+    print("  -r, --rate <rate>:     bit rate")
+    print("  -p, --program <path>:  path to VLC program")
+    print("  -h, --help:            display help")
+    print()
 
-# Wait for user input to close program (Windows)
-os.system("pause")
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+
+    # Wait for user input to close program (Windows)
+    os.system("pause")
