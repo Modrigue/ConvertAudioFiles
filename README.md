@@ -9,3 +9,5 @@ Options:
  * -r, --rate <rate>:     bit rate
  * -p, --program <path>:  path to VLC program
  * -h, --help:            display help
+
+ _Known issues: Directories including 's must be renamed._
