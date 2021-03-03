@@ -86,7 +86,7 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
 
         # Browse files
         for filename in filenames:
-            if(re.search('.aac', filename) is not None or re.search('.m4a', filename) is not None or re.search('.ogg', filename) is not None):
+            if(re.search('.aac', filename) is not None or re.search('.m4a', filename) is not None or re.search('.ogg', filename) is not None or re.search('.wav', filename) is not None):
                 nbTotal += 1
                 srcFile = os.path.join(dirname, filename)
                 srcFileBase = os.path.basename(srcFile)
