@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import sys, getopt
 
 def main(argv):
@@ -16,7 +17,8 @@ def main(argv):
     CONVERT_DIR = ""
 
     # Default program (absolute) path (replace '\' with '/')
-    PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
+    PROGRAM_PATH = "C:/Program Files/VideoLAN/VLC/vlc.exe"
+    #PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
 
     # Default bitrate
     BIT_RATE = 128
@@ -88,16 +90,16 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
         for filename in filenames:
             if(re.search('.aac', filename) is not None or re.search('.m4a', filename) is not None or re.search('.ogg', filename) is not None or re.search('.wav', filename) is not None or re.search('.opus', filename) is not None):
                 nbTotal += 1
-                srcFile = os.path.join(dirname, filename)
+                srcFile = filename
                 srcFileBase = os.path.basename(srcFile)
                 srcFileWithoutExt = Path(srcFileBase).stem
                 dstFileBase = re.sub('\s\(\d{2,3}kbit_(AAC|Opus)\)', "", srcFileWithoutExt)
                 dstFileBase = re.sub(oldString, "", dstFileBase)
-                dstFile = os.path.join(dirname, dstFileBase + ".mp3")
+                dstFile = dstFileBase + ".mp3"
                 if(not filename.startswith(oldString)):
-                    oldFile = os.path.join(dirname, oldString + filename)
+                    oldFile = oldString + filename
                 else:
-                    oldFile = os.path.join(dirname, filename)
+                    oldFile = filename
                 
                 #print(srcFile)
                 #print(dstFile)
@@ -105,13 +107,14 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
                 # Execute program command
                 progDir = os.path.dirname(os.path.abspath(PROGRAM_PATH))
                 progExe = os.path.basename(os.path.abspath(PROGRAM_PATH))
-                os.chdir(progDir)
+                os.chdir(dirname)
+                #print("CURRENT DIR = " + os.getcwd())
 
-                print("Converting file", srcFile, "...")
-                tmpFile = os.path.join(dirname, "_output_.mp3")
-                cmd = progExe + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(BIT_RATE) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
+                print("Converting file", os.path.join(dirname, filename), "...")
+                tmpFile = "_output_.mp3"
+                cmd = "& " + "\'" + PROGRAM_PATH  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(BIT_RATE) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
                 #print(cmd)
-                os.system(cmd)
+                subprocess.run(['powershell', "-Command", cmd], capture_output=True)
                 
                 # Post-process: replace filenames
                 os.rename(srcFile, oldFile)
