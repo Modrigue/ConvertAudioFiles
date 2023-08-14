@@ -11,7 +11,7 @@ python ConvertAudioFiles.py -d <directory>
 
 > Options:
 >
-> * *-d, --dir \<path\>*:                directory to bulk convert audio files in
+> * *-d, --dir \<dir\>*:                directory to bulk convert audio files in
 > * *-o, --output-format \<format\>*:    output format (mp3 or wav)"
 > * *-r, --rate \<rate\>*:               bit rate
 > * *-p, --program \<path\>*:            path to VLC program
