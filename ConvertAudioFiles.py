@@ -55,7 +55,7 @@ def main(argv):
         printHelp()
         return
 
-    convertFilesToMP3()
+    convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, OUTPUT_FORMAT, BIT_RATE)
 
 
 def convertToDOSPath(dir):
@@ -65,33 +65,28 @@ def convertToPythonPath(dir):
     return dir.replace("\\", "/")
 
 
-def convertFilesToMP3():
-
-    global CONVERT_DIR
-    global PROGRAM_PATH
-    global OUTPUT_FORMAT
-    global BIT_RATE
+def convertFilesToMP3(convertDir, programPath, outputFormat, bitRate):
 
     # Check VLC location 
-    if(not os.path.isfile(PROGRAM_PATH)):
+    if(not os.path.isfile(programPath)):
         print("ERROR: VLC not found. Please check your VLC installation path.")
         os.system("pause")
         exit()
 
     # Check directory
-    if(not os.path.isdir(CONVERT_DIR)):
-        print("ERROR: Directory", CONVERT_DIR, "does not exist")
+    if(not os.path.isdir(convertDir)):
+        print("ERROR: Directory", convertDir, "does not exist")
         os.system("pause")
         exit()
         
     #os.chdir(source_dir)
-    print("Converting files in", CONVERT_DIR, "...")
+    print("Converting files in", convertDir, "...")
     print()
 
-    convertDir = convertToPythonPath(CONVERT_DIR)
-    programPath = convertToPythonPath(PROGRAM_PATH)
+    convertDirStr = convertToPythonPath(convertDir)
+    programPathStr = convertToPythonPath(programPath)
     
-    extString = f".{OUTPUT_FORMAT.lower()}"
+    extString = f".{outputFormat.lower()}"
     formatsToProcess = [".aac", ".m4a", ".ogg", ".opus"]
     if (extString == ".wav"):
         formatsToProcess.append(".mp3")
@@ -102,7 +97,7 @@ def convertFilesToMP3():
     # Convert files in directory
     nbTotal  = 0
     nbConverted = 0
-    for dirname, dirnames, filenames in os.walk(convertDir):
+    for dirname, dirnames, filenames in os.walk(convertDirStr):
 
         #print("Processing directory", dirname)
         dirname = convertToDOSPath(dirname)
@@ -134,17 +129,17 @@ def convertFilesToMP3():
                 #print(dstFile)
                 
                 # Execute program command
-                progDir = os.path.dirname(os.path.abspath(programPath))
-                progExe = os.path.basename(os.path.abspath(programPath))
+                progDir = os.path.dirname(os.path.abspath(programPathStr))
+                progExe = os.path.basename(os.path.abspath(programPathStr))
                 os.chdir(dirname)
                 #print("CURRENT DIR = " + os.getcwd())
 
                 print("Converting file", os.path.join(dirname, filename), "...")
                 tmpFile = f"_output_{extString}"
                 if (extString == ".wav"):
-                    cmd = "& " + "\'" + programPath  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=s16l,channels=2}:std{access=file,mux=wav,dst=" + tmpFile + ",access=file}\" vlc://quit"
+                    cmd = "& " + "\'" + programPathStr  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=s16l,channels=2}:std{access=file,mux=wav,dst=" + tmpFile + ",access=file}\" vlc://quit"
                 else:
-                    cmd = "& " + "\'" + programPath  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(BIT_RATE) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
+                    cmd = "& " + "\'" + programPathStr  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(bitRate) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
                 #print(cmd)
                 subprocess.run(['powershell', "-Command", cmd], capture_output=True)
                 
