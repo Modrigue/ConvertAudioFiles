@@ -145,7 +145,7 @@ def convertFilesToMP3():
                     cmd = "& " + "\'" + programPath  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=s16l,channels=2}:std{access=file,mux=wav,dst=" + tmpFile + ",access=file}\" vlc://quit"
                 else:
                     cmd = "& " + "\'" + programPath  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(BIT_RATE) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
-                print(cmd)
+                #print(cmd)
                 subprocess.run(['powershell', "-Command", cmd], capture_output=True)
                 
                 # Post-process: replace filenames
