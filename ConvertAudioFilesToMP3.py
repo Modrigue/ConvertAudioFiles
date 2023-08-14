@@ -11,20 +11,28 @@ import shutil
 import subprocess
 import sys, getopt
 
+# Files to be converted directory (replace '\' with '/')
+CONVERT_DIR = ""
+
+# Default program (absolute) path (replace '\' with '/')
+PROGRAM_PATH = "C:/Program Files/VideoLAN/VLC/vlc.exe"
+#PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
+
+# Default output format
+OUTPUT_FORMAT = "mp3"
+
+# Default bitrate
+BIT_RATE = 128
+
 def main(argv):
 
-    # Files to be converted directory (replace '\' with '/')
-    CONVERT_DIR = ""
-
-    # Default program (absolute) path (replace '\' with '/')
-    PROGRAM_PATH = "C:/Program Files/VideoLAN/VLC/vlc.exe"
-    #PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
-
-    # Default bitrate
-    BIT_RATE = 128
-
+    global CONVERT_DIR
+    global PROGRAM_PATH
+    global OUTPUT_FORMAT
+    global BIT_RATE
+    
     try:
-        opts, args = getopt.getopt(argv,"hd:r:p:",["help","dir=","rate=","program="])
+        opts, args = getopt.getopt(argv,"hd:r:p:o:",["help","dir=","rate=","program=","output-format="])
     except getopt.GetoptError:
         printHelp()
         sys.exit(2)
@@ -39,13 +47,15 @@ def main(argv):
             BIT_RATE = arg
         elif opt in ("-p", "--program"):
             PROGRAM_PATH = arg
+        elif opt in ("-o", "--output-format"):
+            OUTPUT_FORMAT = arg
 
     if(not CONVERT_DIR):
         print('Error: conversion directory is missing')
         printHelp()
         return
 
-    convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE)
+    convertFilesToMP3()
 
 
 def convertToDOSPath(dir):
@@ -55,7 +65,12 @@ def convertToPythonPath(dir):
     return dir.replace("\\", "/")
 
 
-def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
+def convertFilesToMP3():
+
+    global CONVERT_DIR
+    global PROGRAM_PATH
+    global OUTPUT_FORMAT
+    global BIT_RATE
 
     # Check VLC location 
     if(not os.path.isfile(PROGRAM_PATH)):
@@ -73,13 +88,21 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
     print("Converting files in", CONVERT_DIR, "...")
     print()
 
-    CONVERT_DIR = convertToPythonPath(CONVERT_DIR)
-    PROGRAM_PATH = convertToPythonPath(PROGRAM_PATH)
+    convertDir = convertToPythonPath(CONVERT_DIR)
+    programPath = convertToPythonPath(PROGRAM_PATH)
+    
+    extString = f".{OUTPUT_FORMAT.lower()}"
+    formatsToProcess = [".aac", ".m4a", ".ogg", ".opus"]
+    if (extString == ".wav"):
+        formatsToProcess.append(".mp3")
+    else:
+        formatsToProcess.append(".wav")
+
 
     # Convert files in directory
     nbTotal  = 0
     nbConverted = 0
-    for dirname, dirnames, filenames in os.walk(CONVERT_DIR):
+    for dirname, dirnames, filenames in os.walk(convertDir):
 
         #print("Processing directory", dirname)
         dirname = convertToDOSPath(dirname)
@@ -88,14 +111,20 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
 
         # Browse files
         for filename in filenames:
-            if(re.search('.aac', filename) is not None or re.search('.m4a', filename) is not None or re.search('.ogg', filename) is not None or re.search('.wav', filename) is not None or re.search('.opus', filename) is not None):
+
+            # Process file given format
+            processFile = False
+            for format in formatsToProcess:
+                processFile |= (re.search(format, filename) is not None)
+
+            if (processFile):
                 nbTotal += 1
                 srcFile = filename
                 srcFileBase = os.path.basename(srcFile)
                 srcFileWithoutExt = Path(srcFileBase).stem
                 dstFileBase = re.sub('\s\(\d{2,3}kbit_(AAC|Opus)\)', "", srcFileWithoutExt)
                 dstFileBase = re.sub(oldString, "", dstFileBase)
-                dstFile = dstFileBase + ".mp3"
+                dstFile = dstFileBase + extString
                 if(not filename.startswith(oldString)):
                     oldFile = oldString + filename
                 else:
@@ -105,15 +134,18 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
                 #print(dstFile)
                 
                 # Execute program command
-                progDir = os.path.dirname(os.path.abspath(PROGRAM_PATH))
-                progExe = os.path.basename(os.path.abspath(PROGRAM_PATH))
+                progDir = os.path.dirname(os.path.abspath(programPath))
+                progExe = os.path.basename(os.path.abspath(programPath))
                 os.chdir(dirname)
                 #print("CURRENT DIR = " + os.getcwd())
 
                 print("Converting file", os.path.join(dirname, filename), "...")
-                tmpFile = "_output_.mp3"
-                cmd = "& " + "\'" + PROGRAM_PATH  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(BIT_RATE) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
-                #print(cmd)
+                tmpFile = f"_output_{extString}"
+                if (extString == ".wav"):
+                    cmd = "& " + "\'" + programPath  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=s16l,channels=2}:std{access=file,mux=wav,dst=" + tmpFile + ",access=file}\" vlc://quit"
+                else:
+                    cmd = "& " + "\'" + programPath  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(BIT_RATE) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
+                print(cmd)
                 subprocess.run(['powershell', "-Command", cmd], capture_output=True)
                 
                 # Post-process: replace filenames
@@ -127,7 +159,7 @@ def convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, BIT_RATE):
                         index += 1
                         dstFileWithoutExt = Path(dstFileBase).stem
                         dstFileWithoutExt += " (" + str(index) + ")"
-                        dstFile = os.path.join(dirname, dstFileWithoutExt + ".mp3")
+                        dstFile = os.path.join(dirname, dstFileWithoutExt + extString)
                         if(not os.path.exists(dstFile)):
                             # ok, create file
                             os.rename(tmpFile, dstFile)
@@ -154,7 +186,8 @@ def printHelp():
     print()
     print("Options:")
     print("  -d, --dir <dir>:       directory to bulk convert audio files in")
-    print("  -r, --rate <rate>:     bit rate")
+    print("  -o, --output-format:   output format (mp3 or wav, default: mp3)")
+    print("  -r, --rate <rate>:     bit rate (default: 128 kb)")
     print("  -p, --program <path>:  path to VLC program")
     print("  -h, --help:            display help")
     print()
