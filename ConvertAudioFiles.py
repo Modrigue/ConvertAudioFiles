@@ -87,7 +87,7 @@ def convertFilesToMP3(convertDir, programPath, outputFormat, bitRate):
     programPathStr = convertToPythonPath(programPath)
     
     extString = f".{outputFormat.lower()}"
-    formatsToProcess = [".aac", ".m4a", ".ogg", ".opus", ".wma"]
+    formatsToProcess = [".aac", ".m4a", ".ogg", ".opus", ".wma", ".mp2"]
     if (extString == ".wav"):
         formatsToProcess.append(".mp3")
     else:
