@@ -117,7 +117,7 @@ def convertFilesToMP3(convertDir, programPath, outputFormat, bitRate):
                 srcFile = filename
                 srcFileBase = os.path.basename(srcFile)
                 srcFileWithoutExt = Path(srcFileBase).stem
-                dstFileBase = re.sub('\s\(\d{2,3}kbit_(AAC|Opus)\)', "", srcFileWithoutExt)
+                dstFileBase = re.sub(r'\s\(\d{2,3}kbit_(AAC|Opus)\)', "", srcFileWithoutExt)
                 dstFileBase = re.sub(oldString, "", dstFileBase)
                 dstFile = dstFileBase + extString
                 if(not filename.startswith(oldString)):
