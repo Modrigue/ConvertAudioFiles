@@ -1,11 +1,11 @@
-#!/usr/bin/env python
-# -*-coding:Latin-1 -*
+#!/usr/bin/env python3
+# -*-coding:utf-8 -*-
 
-# Converts all audio files in specified directory to MP3 files
-
+# Converts all audio files in specified directory to specified format
 
 import os
 from pathlib import Path
+import platform
 import re
 import shutil
 import subprocess
@@ -14,9 +14,38 @@ import sys, getopt
 # Files to be converted directory (replace '\' with '/')
 CONVERT_DIR = ""
 
-# Default program (absolute) path (replace '\' with '/')
-PROGRAM_PATH = "C:/Program Files/VideoLAN/VLC/vlc.exe"
-#PROGRAM_PATH = "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
+# Detect operating system
+IS_WINDOWS = platform.system() == 'Windows'
+IS_LINUX = platform.system() == 'Linux'
+
+# Default program paths
+DEFAULT_PATHS = {
+    'Windows': [
+        "C:/Program Files/VideoLAN/VLC/vlc.exe",
+        "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe"
+    ],
+    'Linux': [
+        "/usr/bin/vlc",
+        "/usr/local/bin/vlc",
+        "/usr/bin/cvlc"
+    ]
+}
+
+# Set default program path based on OS
+PROGRAM_PATH = None
+for path in DEFAULT_PATHS[platform.system()]:
+    if os.path.isfile(path):
+        PROGRAM_PATH = path
+        break
+
+if PROGRAM_PATH is None and IS_LINUX:
+    # Try to find VLC in PATH
+    try:
+        vlc_path = subprocess.check_output(['which', 'vlc']).decode('utf-8').strip()
+        if vlc_path:
+            PROGRAM_PATH = vlc_path
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
 
 # Default output format
 OUTPUT_FORMAT = "mp3"
@@ -58,11 +87,15 @@ def main(argv):
     convertFilesToMP3(CONVERT_DIR, PROGRAM_PATH, OUTPUT_FORMAT, BIT_RATE)
 
 
-def convertToDOSPath(dir):
-    return dir.replace("/", "\\")
+def convertToNativePath(path):
+    """Convert path to use native path separators"""
+    if IS_WINDOWS:
+        return path.replace("/", "\\")
+    return path.replace("\\", "/")
 
-def convertToPythonPath(dir):
-    return dir.replace("\\", "/")
+def convertToPythonPath(path):
+    """Convert path to use forward slashes (Python style)"""
+    return path.replace("\\", "/")
 
 
 def convertFilesToMP3(convertDir, programPath, outputFormat, bitRate):
@@ -100,7 +133,7 @@ def convertFilesToMP3(convertDir, programPath, outputFormat, bitRate):
     for dirname, dirnames, filenames in os.walk(convertDirStr):
 
         #print("Processing directory", dirname)
-        dirname = convertToDOSPath(dirname)
+        dirname = convertToNativePath(dirname)
 
         oldString = "_OLD_"
 
@@ -128,20 +161,41 @@ def convertFilesToMP3(convertDir, programPath, outputFormat, bitRate):
                 #print(srcFile)
                 #print(dstFile)
                 
-                # Execute program command
-                progDir = os.path.dirname(os.path.abspath(programPathStr))
-                progExe = os.path.basename(os.path.abspath(programPathStr))
+                            # Execute program command
                 os.chdir(dirname)
-                #print("CURRENT DIR = " + os.getcwd())
-
                 print("Converting file", os.path.join(dirname, filename), "...")
                 tmpFile = f"_output_{extString}"
-                if (extString == ".wav"):
-                    cmd = "& " + "\'" + programPathStr  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=s16l,channels=2}:std{access=file,mux=wav,dst=" + tmpFile + ",access=file}\" vlc://quit"
+                
+                # Build VLC command based on output format
+                if extString == ".wav":
+                    vlc_cmd = [
+                        programPathStr,
+                        '-I', 'dummy',
+                        srcFile,
+                        f':sout=#transcode{{acodec=s16l,channels=2}}:std{{access=file,mux=wav,dst={tmpFile},access=file}}',
+                        'vlc://quit'
+                    ]
                 else:
-                    cmd = "& " + "\'" + programPathStr  + "\'" + " -I dummy \"" + srcFile + "\" " + "\":sout=#transcode{acodec=mpga,ab=" + str(bitRate) + "}:std{dst=" + tmpFile + ",access=file}\" vlc://quit"
-                #print(cmd)
-                subprocess.run(['powershell', "-Command", cmd], capture_output=True)
+                    vlc_cmd = [
+                        programPathStr,
+                        '-I', 'dummy',
+                        srcFile,
+                        f':sout=#transcode{{acodec=mpga,ab={bitRate}}}:std{{dst={tmpFile},access=file}}',
+                        'vlc://quit'
+                    ]
+                
+                # On Linux, use cvlc (command-line VLC) if available
+                if IS_LINUX and 'cvlc' in programPathStr.lower():
+                    vlc_cmd[0] = 'cvlc'
+                # On Windows, use PowerShell for proper quoting
+                elif IS_WINDOWS:
+                    vlc_cmd = ['powershell', '-Command', '& ' + ' '.join(f'"{arg}"' for arg in vlc_cmd)]
+                
+                try:
+                    subprocess.run(vlc_cmd, check=True, capture_output=True, text=True)
+                except subprocess.CalledProcessError as e:
+                    print(f"Error converting {filename}: {e.stderr}", file=sys.stderr)
+                    continue
                 
                 # Post-process: replace filenames
                 os.rename(srcFile, oldFile)
@@ -191,5 +245,8 @@ def printHelp():
 if __name__ == "__main__":
     main(sys.argv[1:])
 
-    # Wait for user input to close program (Windows)
-    os.system("pause")
+    # Wait for user input to close program
+    if IS_WINDOWS:
+        os.system("pause")
+    else:
+        input("Press Enter to exit...")

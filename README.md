@@ -1,12 +1,20 @@
 # ConvertAudioFiles
 
 Simple script to bulk convert all audio files in a specified directory to MP3 or WAV files.
-(Requires VLC)
+(For Windows / Linux, requires VLC)
 
 Usage:
 
-```
+Windows:
+
+```Windows
 python ConvertAudioFiles.py -d <directory>
+```
+
+Linux:
+
+```Linux
+python3 ConvertAudioFiles.py -d <directory>
 ```
 
 > Options:
